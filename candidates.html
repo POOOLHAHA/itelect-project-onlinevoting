@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Online Voting System - Candidates</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Online Voting System</h1>
+            <p class="tagline">Cast your vote</p>
+            <nav>
+                <ul>
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="#" class="active">Vote</a></li>
+                    <li><a href="results.html">Results</a></li>
+                    <li><a href="#" id="logoutBtn">Logout</a></li>
+                </ul>
+            </nav>
+        </header>
+        
+        <main id="mainContent">
+            <div class="election-info">
+                <h2>Philippines Election 2025</h2>
+                <p>Please select your candidates for each position. Your vote is anonymous and secure.</p>
+            </div>
+            
+        </main>
+        
+        <footer>
+            <p>&copy; 2025 Online Voting System. All rights reserved.</p>
+        </footer>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+            
+            if (!currentUser) {
+                window.location.href = 'index.html';
+                return;
+            }
+            
+            const hasVoted = localStorage.getItem('hasVoted') === 'true';
+            
+            if (hasVoted) {
+                window.location.href = 'results.html';
+                return;
+            }
+            
+           
+            loadVotingContent();
+            
+            
+            document.getElementById('logoutBtn').addEventListener('click', function(e) {
+                e.preventDefault();
+                localStorage.removeItem('currentUser');
+                localStorage.removeItem('hasVoted'); 
+                window.location.href = 'index.html';
+            });
+        });
+        
+     
+        function loadVotingContent() {
+            const mainContent = document.getElementById('mainContent');
+           
+            const senatorialSection = createPositionSection('Senatorial Candidates', 'Select up to 12 candidates', getSenators(), 'senator', 'checkbox');
+            mainContent.appendChild(senatorialSection);
+        
+            const congressionalSection = createPositionSection('Congressional Candidates', 'Select one candidate for your district', getCongressCandidates(), 'congress', 'radio');
+            mainContent.appendChild(congressionalSection);
+            
+           
+            const mayoralSection = createPositionSection('Mayoral Candidates', 'Select one candidate for your city', getMayorCandidates(), 'mayor', 'radio');
+            mainContent.appendChild(mayoralSection);
+        
+            const viceSection = createPositionSection('Vice Mayoral Candidates', 'Select one candidate for your city', getViceMayorCandidates(), 'vice-mayor', 'radio');
+            mainContent.appendChild(viceSection);
+            
+       
+            const councilorSection = createPositionSection('Councilor Candidates', 'Select up to 8 candidates', getCouncilorCandidates(), 'councilor', 'checkbox');
+            mainContent.appendChild(councilorSection);
+         
+            const votingActions = document.createElement('div');
+            votingActions.className = 'voting-actions';
+            votingActions.innerHTML = `<button class="btn btn-primary" id="submitVoteBtn">Submit Vote</button>`;
+            mainContent.appendChild(votingActions);
+            
+            
+            document.getElementById('submitVoteBtn').addEventListener('click', submitVote);
+        }
+        
+   
+        function createPositionSection(title, description, candidates, name, type) {
+            const section = document.createElement('section');
+            section.className = 'position-section';
+            
+            section.innerHTML = `
+                <h2>${title}</h2>
+                <p>${description}</p>
+                <div class="candidates-grid">
+                    ${candidates.map(candidate => `
+                        <div class="candidate-card">
+                            <div class="candidate-image">
+                                <img src="/placeholder.svg?height=150&width=150" alt="${candidate.name}">
+                            </div>
+                            <div class="candidate-info">
+                                <h3>${candidate.name}</h3>
+                                <p>${candidate.party}</p>
+                                <p class="candidate-slogan">${candidate.slogan}</p>
+                            </div>
+                            <div class="vote-action">
+                                <label class="vote-label">
+                                    <input type="${type}" name="${name}" value="${candidate.id}">
+                                    <span class="checkmark"></span>
+                                    Select
+                                </label>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+            
+            return section;
+        }
+        
+   
+        function submitVote() {
+            
+            const selectedSenators = Array.from(document.querySelectorAll('input[name="senator"]:checked')).map(input => input.value);
+            const selectedCongress = document.querySelector('input[name="congress"]:checked')?.value;
+            const selectedMayor = document.querySelector('input[name="mayor"]:checked')?.value;
+            const selectedViceMayor = document.querySelector('input[name="vice-mayor"]:checked')?.value;
+            const selectedCouncilors = Array.from(document.querySelectorAll('input[name="councilor"]:checked')).map(input => input.value);
+            
+            
+            if (selectedSenators.length === 0) {
+                alert('Please select at least one senator');
+                return;
+            }
+            
+            if (selectedSenators.length > 12) {
+                alert('You can only select up to 12 senators');
+                return;
+            }
+            
+            if (!selectedCongress) {
+                alert('Please select a congressional candidate');
+                return;
+            }
+            
+            if (!selectedMayor) {
+                alert('Please select a mayoral candidate');
+                return;
+            }
+            
+            if (!selectedViceMayor) {
+                alert('Please select a vice mayoral candidate');
+                return;
+            }
+            
+            if (selectedCouncilors.length === 0) {
+                alert('Please select at least one councilor');
+                return;
+            }
+            
+            if (selectedCouncilors.length > 8) {
+                alert('You can only select up to 8 councilors');
+                return;
+            }
+            
+            if (confirm('Are you sure you want to submit your vote? This action cannot be undone.')) {
+                const voteCounts = JSON.parse(localStorage.getItem('voteCounts')) || {
+                    senator: {},
+                    congress: {},
+                    mayor: {},
+                    'vice-mayor': {},
+                    councilor: {}
+                };
+                
+                
+                selectedSenators.forEach(id => {
+                    voteCounts.senator[id] = (voteCounts.senator[id] || 0) + 1;
+                });
+                
+                voteCounts.congress[selectedCongress] = (voteCounts.congress[selectedCongress] || 0) + 1;
+                voteCounts.mayor[selectedMayor] = (voteCounts.mayor[selectedMayor] || 0) + 1;
+                voteCounts['vice-mayor'][selectedViceMayor] = (voteCounts['vice-mayor'][selectedViceMayor] || 0) + 1;
+                
+                selectedCouncilors.forEach(id => {
+                    voteCounts.councilor[id] = (voteCounts.councilor[id] || 0) + 1;
+                });
+                
+               
+                localStorage.setItem('voteCounts', JSON.stringify(voteCounts));
+                
+                
+                localStorage.setItem('hasVoted', 'true');
+                
+                
+                showVoteConfirmation();
+            }
+        }
+        
+       
+        function showVoteConfirmation() {
+            const confirmation = document.createElement('div');
+            confirmation.className = 'vote-confirmation';
+            confirmation.innerHTML = `
+                <div class="vote-confirmation-overlay"></div>
+                <div class="vote-confirmation-content">
+                    <h3>Vote Cast Successfully!</h3>
+                    <p>Thank you for participating in the democratic process.</p>
+                    <div class="vote-confirmation-actions">
+                        <button id="viewResultsBtn" class="btn btn-primary">Confirm</button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(confirmation);
+            
+            document.getElementById('viewResultsBtn').addEventListener('click', function() {
+                window.location.href = 'confirmation.html';
+            });
+        }
+        
+
+        function getSenators() {
+            return [
+                { id: 'senator1', name: '#51 Kiko Pangilinan', party: 'LP - Liberal Party', slogan: 'Agriculture' },
+                { id: 'senator2', name: '#5 Bam Aquino', party: 'KNP - Katipunan ng Nagkakaisang Pilipino', slogan: 'Education' },
+                { id: 'senator3', name: '#45 Heidi Mendoza', party: 'Independent', slogan: 'Anti-Corruption' },
+                { id: 'senator4', name: '#21 Ka Leody De Guzman', party: 'PLM - Partido Lakas ng Masa', slogan: 'Workers Welfare' },
+                { id: 'senator5', name: '#25 Luke Espirito', party: 'PLM - Partido Lakas ng Masa', slogan: 'Labor Rights' },
+                { id: 'senator6', name: '#54 Danilo Ramos', party: 'MKBYN - Makabayang Koalisyon ng Mamamayan', slogan: 'Agricultural reform and rural development' },
+                { id: 'senator7', name: '#56 Vic Rodriguez', party: 'Independent', slogan: 'Education and healthcare for all' },
+                { id: 'senator8', name: '#36 Wilbert Lee', party: 'PLM - Partido Lakas ng Masa', slogan: 'Healthcare' },
+                { id: 'senator9', name: '#40 Marquez Norman', party: 'Independent', slogan: 'Animal Welfare' },
+                { id: 'senator10', name: '#63 Erwin Tulfo', party: 'Lakas-CMD', slogan: 'Kakampi ng inaapi' },
+                { id: 'senator11', name: '#53 Apollo Quiboloy', party: 'Independent', slogan: 'Let the truth be known' },
+                { id: 'senator12', name: '#50 Manny Pacquiao', party: 'Independent', slogan: 'May the best MANny Win' }
+            ];
+        }
+        
+
+        function getCongressCandidates() {
+            return [
+                { id: 'congress1', name: '#1 Maria Santos', party: 'LP - Liberal Party', slogan: 'Education Reform' },
+                { id: 'congress2', name: '#2 Juan Dela Cruz', party: 'KNP - Katipunan ng Nagkakaisang Pilipino', slogan: 'Infrastructure Development' },
+                { id: 'congress3', name: '#3 Patrick Michael Vargas', party: 'Lakas-CMD', slogan: 'Infrastructure Development' },
+                { id: 'congress4', name: '#4 Rose Nono Lin', party: 'Lakas-CMD', slogan: 'Tuloy ang laban' }
+            ];
+        }
+        
+        function getMayorCandidates() {
+            return [
+                { id: 'vicemayor1', name: '#1 Joy Belmonte', party: 'SBP - Serbisyo Sa Bayan Party', slogan: 'Community Development' },
+                { id: 'vicemayor2', name: '#2 Diosdado Velasco', party: 'Independent', slogan: 'Social Media' },
+                { id: 'vicemayor3', name: '#3 Jonathan Cabalo', party: 'Independent', slogan: 'N/A' },
+                { id: 'vicemayor4', name: '#4 Rolando Jota', party: 'Independent', slogan: 'N/A' }
+            ];
+        }
+        
+        function getViceMayorCandidates() {
+            return [
+                { id: 'mayor1', name: '#1 Gian Sotto', party: 'SBP - Serbisyo Sa Bayan Party', slogan: 'City Development' },
+                { id: 'mayor2', name: '#2 Dante Villarta', party: 'Independent', slogan: 'Public Service' },
+                { id: 'mayor3', name: '#3 Inventor Ingles', party: 'Independent', slogan: 'Public Service' },
+                { id: 'mayor4', name: '#4 June Felangco', party: 'Independent', slogan: 'Public Service' },
+            ];
+        }
+        
+        function getCouncilorCandidates() {
+            return [
+                { id: 'councilor1', name: '#1 Miguel Santos', party: 'LP - Liberal Party', slogan: 'Barangay Development' },
+                { id: 'councilor2', name: '#2 Elena Cruz', party: 'KNP - Katipunan ng Nagkakaisang Pilipino', slogan: 'Public Safety' },
+                { id: 'councilor3', name: '#3 Roberto Lim', party: 'LP - Liberal Party', slogan: 'Environmental Protection' },
+                { id: 'councilor4', name: '#4 Maria Santos', party: 'KNP - Katipunan ng Nagkakaisang Pilipino', slogan: 'Health Services' },
+                { id: 'councilor5', name: '#5 Antonio Reyes', party: 'LP - Liberal Party', slogan: 'Education Programs' },
+                { id: 'councilor6', name: '#6 Isabel Garcia', party: 'KNP - Katipunan ng Nagkakaisang Pilipino', slogan: 'Social Services' },
+                { id: 'councilor7', name: '#7 Jose Martinez', party: 'LP - Liberal Party', slogan: 'Infrastructure' },
+                { id: 'councilor8', name: '#8 Carmen Torres', party: 'KNP - Katipunan ng Nagkakaisang Pilipino', slogan: 'Women\'s Rights' }
+            ];
+        }
+    </script>
+</body>
+</html>

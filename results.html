@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Election Results - Online Voting System</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Election Results</h1>
+            <p class="tagline">Live Vote Count</p>
+            <nav>
+                <ul>
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="candidates.html">Vote</a></li>
+                    <li><a href="#" class="active">Results</a></li>
+                    <li><a href="#" id="logoutBtn">Logout</a></li>
+                </ul>
+            </nav>
+        </header>
+
+        <main>
+            <div class="election-info">
+                <h2>Philippines Election 2025</h2>
+                <p>Live results of the ongoing election. Results are updated in real-time.</p>
+                <div id="votingStatus"></div>
+            </div>
+            
+            <div class="results-container">
+                <section class="results-section">
+                    <h2>Senatorial Race</h2>
+                    <div class="results-grid" id="senatorial-results">
+                    </div>
+                </section>
+
+               
+                <section class="results-section">
+                    <h2>Congressional Race</h2>
+                    <div class="results-grid" id="congressional-results">
+                   
+                    </div>
+                </section>
+
+              
+                <section class="results-section">
+                    <h2>Mayoral Race</h2>
+                    <div class="results-grid" id="mayoral-results">
+                 
+                    </div>
+                </section>
+
+             
+                <section class="results-section">
+                    <h2>Vice Mayoral Race</h2>
+                    <div class="results-grid" id="vice-mayoral-results">
+                    
+                    </div>
+                </section>
+
+                
+                <section class="results-section">
+                    <h2>Councilor Race</h2>
+                    <div class="results-grid" id="councilor-results">
+                    </div>
+                </section>
+            </div>
+        </main>
+
+        <footer>
+            <p>&copy; 2025 Online Voting System. All rights reserved.</p>
+        </footer>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+            
+         
+            if (!currentUser) {
+                window.location.href = 'index.html';
+                return;
+            }
+            
+       
+            const hasVoted = localStorage.getItem('hasVoted') === 'true';
+            const votingStatus = document.getElementById('votingStatus');
+            
+            if (hasVoted) {
+                votingStatus.innerHTML = `
+            <div style="margin-top: 1rem; padding: 0.75rem; background-color: rgba(16, 185, 129, 0.1); color: #10b981; border-radius: 6px; font-weight: 500;">
+                You have already cast your vote. Thank you for participating!
+                <button id="resetVoteBtn" style="display: block; margin-top: 10px; padding: 5px 10px; background-color: #64748b; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                    Reset Vote (For Testing)
+                </button>
+            </div>
+        `;
+        
+      
+        setTimeout(() => {
+            const resetBtn = document.getElementById('resetVoteBtn');
+            if (resetBtn) {
+                resetBtn.addEventListener('click', function() {
+                    localStorage.removeItem('hasVoted');
+                    alert('Your vote has been reset. You can now vote again.');
+                    window.location.href = 'candidates.html';
+                });
+            }
+        }, 100);
+            } else {
+                votingStatus.innerHTML = `
+                    <div style="margin-top: 1rem; padding: 0.75rem; background-color: rgba(79, 70, 229, 0.1); color: #4f46e5; border-radius: 6px; font-weight: 500;">
+                        You haven't voted yet. <a href="candidates.html" style="color: #4f46e5; text-decoration: underline;">Cast your vote now</a>
+                    </div>
+                `;
+            }
+            
+         
+            initializeResults();
+            
+            
+            document.getElementById('logoutBtn').addEventListener('click', function(e) {
+                e.preventDefault();
+                localStorage.removeItem('currentUser');
+                window.location.href = 'index.html';
+            });
+        });
+        
+        function initializeResults() {
+            const voteCounts = JSON.parse(localStorage.getItem('voteCounts')) || {
+                senator: {},
+                congress: {},
+                mayor: {},
+                'vice-mayor': {},
+                councilor: {}
+            };
+            
+           
+            updateResultsSection('senatorial-results', getSenators(), voteCounts.senator);
+            updateResultsSection('congressional-results', getCongressCandidates(), voteCounts.congress);
+            updateResultsSection('mayoral-results', getMayorCandidates(), voteCounts.mayor);
+            updateResultsSection('vice-mayoral-results', getViceMayorCandidates(), voteCounts['vice-mayor']);
+            updateResultsSection('councilor-results', getCouncilorCandidates(), voteCounts.councilor);
+        }
+        
+       
+        function updateResultsSection(sectionId, candidates, votes) {
+            const section = document.getElementById(sectionId);
+            
+        
+            const totalVotes = Object.values(votes).reduce((sum, count) => sum + count, 0);
+            
+       
+            const sortedCandidates = [...candidates].map(candidate => ({
+                ...candidate,
+                votes: votes[candidate.id] || 0
+            })).sort((a, b) => b.votes - a.votes);
+            
+           
+            section.innerHTML = sortedCandidates.map(candidate => `
+                <div class="result-card">
+                    <div class="candidate-info">
+                        <h3>${candidate.name}</h3>
+                        <p>${candidate.party}</p>
+                    </div>
+                    <div class="vote-info">
+                        <div class="vote-count">${candidate.votes} votes</div>
+                        <div class="vote-percentage">
+                            ${totalVotes > 0 ? ((candidate.votes / totalVotes) * 100).toFixed(1) : 0}%
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress" style="width: ${totalVotes > 0 ? (candidate.votes / totalVotes) * 100 : 0}%"></div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+   
+        function getSenators() {
+            return [
+                { id: 'senator1', name: '#51 Kiko Pangilinan', party: 'LP - Liberal Party' },
+                { id: 'senator2', name: '#5 Bam Aquino', party: 'KNP - Katipunan ng Nagkakaisang Pilipino' },
+                { id: 'senator3', name: '#45 Heidi Mendoza', party: 'N/A' },
+                { id: 'senator4', name: '#21 Ka Leody De Guzman', party: 'PLM - Partido Lakas ng Masa' },
+                { id: 'senator5', name: '#25 Luke Espirito', party: 'PLM - Partido Lakas ng Masa' },
+                { id: 'senator6', name: 'Danilo Ramos', party: 'MKBYN - Makabayang Koalisyon ng Mamamayan' },
+                { id: 'senator7', name: 'Vic Rodriguez', party: 'N/A' },
+                { id: 'senator8', name: 'Wilbert Lee', party: 'PLM - Partido Lakas ng Masa' },
+                { id: 'senator9', name: '#40 Marquez Norman', party: 'N/A' }
+            ];
+        }
+        
+      
+        function getCongressCandidates() {
+            return [
+                { id: 'congress1', name: '#1 Maria Santos', party: 'LP - Liberal Party' },
+                { id: 'congress2', name: '#2 Juan Dela Cruz', party: 'KNP - Katipunan ng Nagkakaisang Pilipino' }
+            ];
+        }
+        
+        function getMayorCandidates() {
+            return [
+                { id: 'mayor1', name: '#1 Pedro Reyes', party: 'LP - Liberal Party' },
+                { id: 'mayor2', name: '#2 Ana Garcia', party: 'KNP - Katipunan ng Nagkakaisang Pilipino' }
+            ];
+        }
+        
+       
+        function getViceMayorCandidates() {
+            return [
+                { id: 'vicemayor1', name: '#1 Carlos Mendoza', party: 'LP - Liberal Party' },
+                { id: 'vicemayor2', name: '#2 Sofia Torres', party: 'KNP - Katipunan ng Nagkakaisang Pilipino' }
+            ];
+        }
+        
+      
+        function getCouncilorCandidates() {
+            return [
+                { id: 'councilor1', name: '#1 Miguel Santos', party: 'LP - Liberal Party' },
+                { id: 'councilor2', name: '#2 Elena Cruz', party: 'KNP - Katipunan ng Nagkakaisang Pilipino' },
+                { id: 'councilor3', name: '#3 Roberto Lim', party: 'LP - Liberal Party' },
+                { id: 'councilor4', name: '#4 Maria Santos', party: 'KNP - Katipunan ng Nagkakaisang Pilipino' },
+                { id: 'councilor5', name: '#5 Antonio Reyes', party: 'LP - Liberal Party' },
+                { id: 'councilor6', name: '#6 Isabel Garcia', party: 'KNP - Katipunan ng Nagkakaisang Pilipino' },
+                { id: 'councilor7', name: '#7 Jose Martinez', party: 'LP - Liberal Party' },
+                { id: 'councilor8', name: '#8 Carmen Torres', party: 'KNP - Katipunan ng Nagkakaisang Pilipino' }
+            ];
+        }
+    </script>
+</body>
+</html>
